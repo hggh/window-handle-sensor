@@ -12,6 +12,7 @@
 #include "driver/rtc_io.h"
 #include "esp32/ulp.h"
 #include "ulp_main.h"
+#include "mqtt_client.h"
 
 #include "lwip/err.h"
 #include "lwip/sys.h"
@@ -28,15 +29,21 @@ extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 #define WINDOW_HANDLE_LEFT 2
 
 #define WINDOW_STATUS_UNDEFINED 0
-#define WINDOW_STATUS_CLOSED 1
-#define WINDOW_STATUS_OPENED 2
-#define WINDOW_STATUS_HALF_OPENED 3
+#define WINDOW_STATUS_CLOSED 2
+#define WINDOW_STATUS_OPENED 4
+#define WINDOW_STATUS_HALF_OPENED 6
 
 #include "config.h"
 
-bool wifi_connect_status = false;
+volatile bool wifi_connection_status = false;
+int wifi_connection_time_amount = 0;
 
-double get_window_status() {
+volatile bool mqtt_client_connected = false;
+int mqtt_connection_time_amount = 0;
+esp_mqtt_client_handle_t mqtt_client;
+volatile int mqtt_message_id = 0;
+
+uint8_t get_window_status() {
   uint8_t hall1_status = ulp_hall1_status & UINT16_MAX;
   uint8_t hall2_status = ulp_hall2_status & UINT16_MAX;
   uint8_t hall3_status = ulp_hall3_status & UINT16_MAX;
@@ -66,13 +73,13 @@ double get_window_status() {
   return WINDOW_STATUS_UNDEFINED;
 }
 
-static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
   switch (event_id) {
     case SYSTEM_EVENT_STA_START:
       esp_wifi_connect();
       break;
     case WIFI_EVENT_STA_CONNECTED:
-      wifi_connect_status = true;
+      wifi_connection_status = true;
       break;
   }
 }
@@ -91,7 +98,7 @@ void setup_wifi() {
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&cfg);
-  esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL);
+  esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL);
   esp_wifi_set_storage(WIFI_STORAGE_RAM);
   wifi_config_t wifi_config = {
     .sta = {
@@ -102,6 +109,41 @@ void setup_wifi() {
   esp_wifi_set_mode(WIFI_MODE_STA);
   esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config);
   esp_wifi_start();
+}
+
+static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event) {
+  switch (event->event_id) {
+    case MQTT_EVENT_CONNECTED:
+      mqtt_client_connected = true;
+      break;
+    case MQTT_EVENT_BEFORE_CONNECT:
+      // ignore event
+      break;
+    case MQTT_EVENT_PUBLISHED:
+      mqtt_message_id = event->msg_id;
+      break;
+    default:
+      printf("Other event id:%d", event->event_id);
+      break;
+  }
+  return ESP_OK;
+}
+
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data) {
+  mqtt_event_handler_cb(event_data);
+}
+
+void setup_mqtt() {
+  esp_mqtt_client_config_t mqtt_cfg = {
+    .host = MQTT_SERVER,
+    .port = 1883,
+    .username = MQTT_USERNAME,
+    .password = MQTT_PASSWORD,
+    .client_id = HOSTNAME,
+  };
+  mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
+  esp_mqtt_client_register_event(mqtt_client, ESP_EVENT_ANY_ID, mqtt_event_handler, mqtt_client);
+  esp_mqtt_client_start(mqtt_client);
 }
 
 void setup_leds() {
@@ -164,6 +206,105 @@ static void init_ulp_program() {
   ESP_ERROR_CHECK(err);
 }
 
+void set_led_by_window_status() {
+  led_off(LED_D1);
+  led_off(LED_D2);
+  led_off(LED_D3);
+
+  uint8_t window_state = get_window_status();
+  if (window_state == WINDOW_STATUS_CLOSED) {
+    led_on(LED_D1);
+  }
+  if (window_state == WINDOW_STATUS_OPENED) {
+    led_on(LED_D2);
+  }
+  if (window_state == WINDOW_STATUS_HALF_OPENED) {
+    led_on(LED_D3);
+  }
+}
+
+int connect_to_wifi() {
+  wifi_connection_status = false;
+  wifi_connection_time_amount = 0;
+  setup_wifi();
+  while(1) {
+    if (wifi_connection_status == true) {
+      return 0;
+    }
+    if (wifi_connection_time_amount > 4000) {
+#ifdef DEBUG
+      printf("WIFI Connect did not happen, break free\n");
+#endif
+      break;
+    }
+    wifi_connection_time_amount += 10;
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+
+  return -1;
+}
+
+int connect_to_mqtt() {
+  mqtt_client_connected = false;
+  mqtt_connection_time_amount = 0;
+  setup_mqtt();
+  while(1) {
+    if (mqtt_client_connected == true) {
+      return 0;
+    }
+    if (mqtt_connection_time_amount > 1500) {
+#ifdef DEBUG
+      printf("MQTT Connect does not happen, break free\n");
+#endif
+      break;
+    }
+    mqtt_connection_time_amount += 10;
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+  return -1;
+}
+
+int send_window_status(int window_status) {
+
+  if (connect_to_wifi() != 0) {
+    // TODO: write error log and send if next time?!?
+    return -1;
+  }
+
+#ifdef DEBUG
+  printf("Wifi connection time was: %d\n", wifi_connection_time_amount);
+#endif
+
+  if (connect_to_mqtt() != 0) {
+    // TODO: write error log and send if next time?!?
+    return -1;
+  }
+
+#ifdef DEBUG
+  printf("MQTT connection time was: %d\n", mqtt_connection_time_amount);
+#endif
+  
+
+  char mqtt_data[10];
+  sprintf(mqtt_data, "%d", window_status);
+  char mqtt_topic[40];
+  sprintf(mqtt_topic, "/ws/%s/status", HOSTNAME);
+  
+  mqtt_message_id = -2;
+  int msg_id = esp_mqtt_client_publish(mqtt_client, mqtt_topic, mqtt_data, strlen(mqtt_data), 2, 1);
+  while(1) {
+    if (mqtt_message_id == msg_id) {
+#ifdef DEBUG
+      printf("MQTT Message %d delivered\n", mqtt_message_id);
+#endif
+      break;
+    }
+    // TODO: timeout, move to extra method for sending also battery status
+  }
+
+  return 0;
+}
+
 void app_main() {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -183,39 +324,19 @@ void app_main() {
     printf("Not ULP wakeup, initializing ULP\n");
     init_ulp_program();
   }
-  printf("%d - %d - %d : %d \n", ulp_hall1_status & UINT16_MAX, ulp_hall2_status & UINT16_MAX, ulp_hall3_status & UINT16_MAX, ulp_event_counter & UINT16_MAX);
+  set_led_by_window_status();
 
-  double window_state = get_window_status();
-  if (window_state == WINDOW_STATUS_CLOSED) {
-    led_on(LED_D1);
-  }
-  if (window_state == WINDOW_STATUS_OPENED) {
-    led_on(LED_D2);
-  }
-  if (window_state == WINDOW_STATUS_HALF_OPENED) {
-    led_on(LED_D3);
-  }
-  if (window_state == WINDOW_STATUS_UNDEFINED) {
-    led_on(LED_D4);
+  int current_window_status = get_window_status();
+  send_window_status(current_window_status);
+
+
+  if (current_window_status != get_window_status()) {
+    // TODO: MEH! Window status changed while sending?!?
+#ifdef DEBUG
+    printf("[WARNING] Window Status changed while sending: %d => %d\n", current_window_status, get_window_status());
+#endif
   }
 
-  wifi_connect_status = false;
-  int wifi_conntect_timeout = 0;
-  setup_wifi();
-  while(1) {
-    if (wifi_connect_status == true) {
-      break;
-    }
-    if (wifi_conntect_timeout > (4000 / 10)) {
-      printf("WIFI Connect did not happen, break free\n");
-      break;
-    }
-    wifi_conntect_timeout++;
-    vTaskDelay(10 / portTICK_PERIOD_MS);
-  }
-  if (wifi_connect_status == true) {
-    printf("Wifi conntect in time: %d\n", (wifi_conntect_timeout * 10));
-  }
 
   // switch off all leds before sleep
   led_off(LED_D1);
