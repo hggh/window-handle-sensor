@@ -15,7 +15,6 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-static const char *TAG = "whs";
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 
