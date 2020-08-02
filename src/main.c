@@ -1,6 +1,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_sleep.h"
@@ -31,7 +32,9 @@ extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 #define WINDOW_STATUS_OPENED 2
 #define WINDOW_STATUS_HALF_OPENED 3
 
-const uint8_t window_handle = WINDOW_HANDLE_RIGHT;
+#include "config.h"
+
+bool wifi_connect_status = false;
 
 double get_window_status() {
   uint8_t hall1_status = ulp_hall1_status & UINT16_MAX;
@@ -61,6 +64,44 @@ double get_window_status() {
     }
   }
   return WINDOW_STATUS_UNDEFINED;
+}
+
+static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
+  switch (event_id) {
+    case SYSTEM_EVENT_STA_START:
+      esp_wifi_connect();
+      break;
+    case WIFI_EVENT_STA_CONNECTED:
+      wifi_connect_status = true;
+      break;
+  }
+}
+
+void setup_wifi() {
+  esp_event_loop_create_default();
+
+  tcpip_adapter_init();
+  tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
+  tcpip_adapter_ip_info_t ip_info;
+  ip_info.ip.addr = ipaddr_addr(IP);
+  ip_info.gw.addr = ipaddr_addr(GATEWAY);
+  ip_info.netmask.addr = ipaddr_addr(SUBNET);
+
+  tcpip_adapter_set_ip_info(WIFI_IF_STA, &ip_info);
+
+  wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+  esp_wifi_init(&cfg);
+  esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL);
+  esp_wifi_set_storage(WIFI_STORAGE_RAM);
+  wifi_config_t wifi_config = {
+    .sta = {
+      .ssid = SECRET_SSID,
+      .password = SECRET_PASS,
+    },
+  };
+  esp_wifi_set_mode(WIFI_MODE_STA);
+  esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_config);
+  esp_wifi_start();
 }
 
 void setup_leds() {
@@ -158,7 +199,23 @@ void app_main() {
     led_on(LED_D4);
   }
 
-  vTaskDelay(500 / portTICK_PERIOD_MS);
+  wifi_connect_status = false;
+  int wifi_conntect_timeout = 0;
+  setup_wifi();
+  while(1) {
+    if (wifi_connect_status == true) {
+      break;
+    }
+    if (wifi_conntect_timeout > (4000 / 10)) {
+      printf("WIFI Connect did not happen, break free\n");
+      break;
+    }
+    wifi_conntect_timeout++;
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+  if (wifi_connect_status == true) {
+    printf("Wifi conntect in time: %d\n", (wifi_conntect_timeout * 10));
+  }
 
   // switch off all leds before sleep
   led_off(LED_D1);
