@@ -1,0 +1,3 @@
+(sym_lib_table
+  (lib (name xc6220)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/xc6220.lib)(options "")(descr ""))
+)
