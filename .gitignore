@@ -1,2 +1,3 @@
 .pio
 src/config.h
+sdkconfig.old
