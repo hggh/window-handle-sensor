@@ -10,6 +10,8 @@
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
+#include "driver/adc.h"
+#include "esp_adc_cal.h"
 #include "esp32/ulp.h"
 #include "ulp_main.h"
 #include "mqtt_client.h"
@@ -20,10 +22,16 @@
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 
+#define uS_TO_S_FACTOR 1000000
+
 #define LED_D1 GPIO_NUM_19
 #define LED_D2 GPIO_NUM_18
 #define LED_D3 GPIO_NUM_17
 #define LED_D4 GPIO_NUM_16
+
+#define ENABLE_VOLTAGE_DIVIDER GPIO_NUM_25
+// GPIO 35
+static const adc_channel_t battery_voltage_chan = ADC1_CHANNEL_7;
 
 #define WINDOW_HANDLE_RIGHT 1
 #define WINDOW_HANDLE_LEFT 2
@@ -42,6 +50,22 @@ volatile bool mqtt_client_connected = false;
 int mqtt_connection_time_amount = 0;
 esp_mqtt_client_handle_t mqtt_client;
 volatile int mqtt_message_id = 0;
+
+enum WakeUpReason {ULP, TIMER, POWERUP};
+enum WakeUpReason wakeup_reason = POWERUP;
+
+RTC_DATA_ATTR uint64_t sleep_time_remaining = 0;
+RTC_DATA_ATTR time_t sleep_time_start;
+
+float get_battery_voltage() {
+  gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 1);
+  adc_power_on();
+
+  adc_power_off();
+  gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 0);
+  // FIXME
+  return 0.0;
+}
 
 uint8_t get_window_status() {
   uint8_t hall1_status = ulp_hall1_status & UINT16_MAX;
@@ -305,6 +329,22 @@ int send_window_status(int window_status) {
   return 0;
 }
 
+void set_wakeup_reason() {
+  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+
+  switch(cause) {
+    case ESP_SLEEP_WAKEUP_TIMER:
+      wakeup_reason = TIMER;
+      break;
+    case ESP_SLEEP_WAKEUP_ULP:
+      wakeup_reason = ULP;
+      break;
+    default:
+      wakeup_reason = POWERUP;
+      break;
+  }
+}
+
 void app_main() {
   esp_err_t ret = nvs_flash_init();
   if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -312,6 +352,7 @@ void app_main() {
     ret = nvs_flash_init();
   }
   ESP_ERROR_CHECK(ret);
+  time_t startup_time = time(0);
 
   // suppress boot message
   esp_deep_sleep_disable_rom_logging();
@@ -319,12 +360,34 @@ void app_main() {
   // setup leds
   setup_leds();
 
-  esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
-  if (cause != ESP_SLEEP_WAKEUP_ULP) {
+  // setup enable voltage divider
+  gpio_reset_pin(ENABLE_VOLTAGE_DIVIDER);
+  gpio_set_direction(ENABLE_VOLTAGE_DIVIDER, GPIO_MODE_OUTPUT);
+  gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 0);
+
+  set_wakeup_reason();
+
+  if (wakeup_reason == POWERUP) {
+#ifdef DEBUG
     printf("Not ULP wakeup, initializing ULP\n");
+#endif
     init_ulp_program();
   }
-  set_led_by_window_status();
+
+  if (wakeup_reason == TIMER || wakeup_reason == POWERUP) {
+    sleep_time_remaining = (uint64_t)(60 * 60 * 24) * (uint64_t)uS_TO_S_FACTOR; // 24 Stunden
+  }
+  if (wakeup_reason == ULP) {
+    sleep_time_remaining = sleep_time_remaining - ((startup_time - sleep_time_start) * (uint64_t)uS_TO_S_FACTOR);
+  }
+#ifdef DEBUG
+  printf("sleep_time_remaining: %" PRId64 "\n", sleep_time_remaining);
+#endif
+
+  if (wakeup_reason == POWERUP || wakeup_reason == ULP) {
+    // to not light up any leds if timer was the reason
+    set_led_by_window_status();
+  }
 
   int current_window_status = get_window_status();
   send_window_status(current_window_status);
@@ -344,7 +407,8 @@ void app_main() {
   led_off(LED_D3);
   led_off(LED_D4);
 
-  printf("Entering deep sleep\n\n");
+  esp_wifi_stop();
   esp_sleep_enable_ulp_wakeup();
+  esp_sleep_enable_timer_wakeup(sleep_time_remaining);
   esp_deep_sleep_start();
 }
