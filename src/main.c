@@ -2,6 +2,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
+#include "esp_timer.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
 #include "esp_sleep.h"
@@ -30,8 +31,6 @@ extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 #define LED_D4 GPIO_NUM_16
 
 #define ENABLE_VOLTAGE_DIVIDER GPIO_NUM_25
-// GPIO 35
-static const adc_channel_t battery_voltage_chan = ADC1_CHANNEL_7;
 
 #define WINDOW_HANDLE_RIGHT 1
 #define WINDOW_HANDLE_LEFT 2
@@ -288,6 +287,25 @@ int connect_to_mqtt() {
   return -1;
 }
 
+int send_mqtt(char topic[], char data[]) {
+  mqtt_message_id = -2;
+  int msg_id = esp_mqtt_client_publish(mqtt_client, topic, data, strlen(data), 2, 1);
+  int64_t mqtt_send = esp_timer_get_time();
+
+  while(1) {
+    if (mqtt_message_id == msg_id) {
+#ifdef DEBUG
+      printf("MQTT Message %d delivered\n", mqtt_message_id);
+#endif
+      return 1;
+    }
+    if (esp_timer_get_time() > mqtt_send + (1000 * 1000)) {
+      return -2;
+    }
+  }
+  return -1;
+}
+
 int send_window_status(int window_status) {
 
   if (connect_to_wifi() != 0) {
@@ -308,25 +326,16 @@ int send_window_status(int window_status) {
   printf("MQTT connection time was: %d\n", mqtt_connection_time_amount);
 #endif
   
-
   char mqtt_data[10];
   sprintf(mqtt_data, "%d", window_status);
   char mqtt_topic[40];
   sprintf(mqtt_topic, "/ws/%s/status", HOSTNAME);
-  
-  mqtt_message_id = -2;
-  int msg_id = esp_mqtt_client_publish(mqtt_client, mqtt_topic, mqtt_data, strlen(mqtt_data), 2, 1);
-  while(1) {
-    if (mqtt_message_id == msg_id) {
-#ifdef DEBUG
-      printf("MQTT Message %d delivered\n", mqtt_message_id);
-#endif
-      break;
-    }
-    // TODO: timeout, move to extra method for sending also battery status
+  int s = send_mqtt(mqtt_topic, mqtt_data);
+  if (s == 1) {
+    return 1;
   }
 
-  return 0;
+  return -1;
 }
 
 void set_wakeup_reason() {
@@ -390,22 +399,34 @@ void app_main() {
   }
 
   int current_window_status = get_window_status();
-  send_window_status(current_window_status);
-
-
-  if (current_window_status != get_window_status()) {
-    // TODO: MEH! Window status changed while sending?!?
-#ifdef DEBUG
-    printf("[WARNING] Window Status changed while sending: %d => %d\n", current_window_status, get_window_status());
-#endif
+  if (send_window_status(current_window_status) != 1) {
+    // sending window status failed, light up LED
+    led_on(LED_D4);
+    vTaskDelay(250 / portTICK_PERIOD_MS);
+    led_off(LED_D4);
   }
-
+  if (wakeup_reason == POWERUP || wakeup_reason == TIMER) {
+    // on timer or powerup send battery status
+    char mqtt_data[10];
+    sprintf(mqtt_data, "%0.2f", get_battery_voltage());
+    char mqtt_topic[40];
+    sprintf(mqtt_topic, "/ws/%s/battery", HOSTNAME);
+    send_mqtt(mqtt_topic, mqtt_data);
+  }
 
   // switch off all leds before sleep
   led_off(LED_D1);
   led_off(LED_D2);
   led_off(LED_D3);
   led_off(LED_D4);
+
+  if (current_window_status != get_window_status()) {
+#ifdef DEBUG
+    printf("[WARNING] Window Status changed while sending: %d => %d\n", current_window_status, get_window_status());
+#endif
+    int current_window_status = get_window_status();
+    send_window_status(current_window_status);
+  }
 
   esp_wifi_stop();
   esp_sleep_enable_ulp_wakeup();
