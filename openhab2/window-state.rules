@@ -1,0 +1,52 @@
+rule "window state check battery voltage"
+when
+	Member of g_window_state_battery received update
+then
+	var item_name = triggeringItem.name
+	
+	// from WindowState1_BatteryVoltage to WindowState1_Alarm and get the Item
+	var alarm_item_name = item_name.substring(0, triggeringItem.name.lastIndexOf('_')) + "_Alarm"
+	var alarm_item = g_window_state_battery_alarm.members.findFirst[name.equals(alarm_item_name)]
+
+	// set threshold level as QuantityType
+	var QuantityType<ElectricPotential> threshold_value = new QuantityType("3.2 V")
+
+
+	if (triggeringItem.state < threshold_value) {
+		sendCommand(alarm_item, "ON")
+	}
+	else {
+		sendCommand(alarm_item, "OFF")
+	}
+end
+
+rule "g_window_state_battery_alarm changed"
+when
+	Member of g_window_state_battery_alarm changed
+then
+	var item_name = triggeringItem.name
+
+	// get the Window State Item from _Alarm Item Name
+	var window_state_item_name = item_name.substring(0, triggeringItem.name.lastIndexOf('_'))
+	var window_state_item = g_window_state.members.findFirst[name.equals(window_state_item_name)]
+
+	// get the Battery Item from _Alarm Item Name
+	var window_state_battery_item_name = item_name.substring(0, triggeringItem.name.lastIndexOf('_')) + "_BatteryVoltage"
+	var window_state_battery_item = g_window_state_battery.members.findFirst[name.equals(window_state_battery_item_name)]
+
+	logInfo("Window State Battery Alarm", "Alarm State: " + triggeringItem.state.toString + "; Item Name " + window_state_item_name + " Battery Value: " + window_state_battery_item.state.toString)
+
+	var message = ""
+
+	if (triggeringItem.state == ON) {
+		message = window_state_item.label + ": Battery low: " + window_state_battery_item.state.toString
+	}
+	else {
+		message = window_state_item.label + ": Battery normal: " + window_state_battery_item.state.toString
+	}
+
+	// send information via telegram:
+	// sendTelegram("bot", message)
+	logInfo("Window State Battery Alarm", message)
+end
+

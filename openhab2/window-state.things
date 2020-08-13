@@ -1,0 +1,8 @@
+Bridge mqtt:broker:window_state [ host="localhost", secure=false, username="openhab", password="", retain=false, clientID="oh", port=1883 ] 
+{
+	Thing topic window1 "Window 1 State" {
+		Channels:
+			Type number : state [ stateTopic="/ws/1/state", qos="2" ]
+			Type number : battery [ stateTopic="/ws/1/battery", qos="2", unit="ElectricPotential" ]
+	}
+}
