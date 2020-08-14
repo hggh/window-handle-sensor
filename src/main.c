@@ -434,6 +434,7 @@ void app_main() {
     send_window_status(current_window_status);
   }
 
+  rtc_gpio_isolate(ENABLE_VOLTAGE_DIVIDER);
   esp_wifi_stop();
   esp_sleep_enable_ulp_wakeup();
   esp_sleep_enable_timer_wakeup(sleep_time_remaining);
