@@ -230,19 +230,19 @@ static void init_ulp_program() {
 }
 
 void set_led_by_window_status() {
-  led_off(LED_D1);
   led_off(LED_D2);
   led_off(LED_D3);
+  led_off(LED_D4);
 
   uint8_t window_state = get_window_status();
   if (window_state == WINDOW_STATUS_CLOSED) {
-    led_on(LED_D1);
+    led_on(LED_D4);
   }
   if (window_state == WINDOW_STATUS_OPENED) {
-    led_on(LED_D2);
+    led_on(LED_D3);
   }
   if (window_state == WINDOW_STATUS_HALF_OPENED) {
-    led_on(LED_D3);
+    led_on(LED_D2);
   }
 }
 
@@ -400,10 +400,10 @@ void app_main() {
 
   int current_window_status = get_window_status();
   if (send_window_status(current_window_status) != 1) {
-    // sending window status failed, light up LED
-    led_on(LED_D4);
+    // sending window status failed, light up red LED
+    led_on(LED_D1);
     vTaskDelay(250 / portTICK_PERIOD_MS);
-    led_off(LED_D4);
+    led_off(LED_D1);
   }
   if (wakeup_reason == POWERUP || wakeup_reason == TIMER) {
     // on timer or powerup send battery status
