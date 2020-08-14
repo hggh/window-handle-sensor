@@ -329,7 +329,7 @@ int send_window_status(int window_status) {
   char mqtt_data[10];
   sprintf(mqtt_data, "%d", window_status);
   char mqtt_topic[40];
-  sprintf(mqtt_topic, "/ws/%s/status", HOSTNAME);
+  sprintf(mqtt_topic, "/ws/%s/state", HOSTNAME);
   int s = send_mqtt(mqtt_topic, mqtt_data);
   if (s == 1) {
     return 1;
