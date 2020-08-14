@@ -237,13 +237,19 @@ void set_led_by_window_status() {
   uint8_t window_state = get_window_status();
   if (window_state == WINDOW_STATUS_CLOSED) {
     led_on(LED_D4);
+    return;
   }
   if (window_state == WINDOW_STATUS_OPENED) {
     led_on(LED_D3);
+    return;
   }
   if (window_state == WINDOW_STATUS_HALF_OPENED) {
     led_on(LED_D2);
+    return;
   }
+  // seems no status, so light up two LEDS
+  led_on(LED_D3);
+  led_on(LED_D4);
 }
 
 int connect_to_wifi() {
