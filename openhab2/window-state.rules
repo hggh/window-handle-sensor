@@ -50,3 +50,18 @@ then
 	logInfo("Window State Battery Alarm", message)
 end
 
+rule "check if a window state item was not active within 25 hours"
+when
+	Time is noon
+then
+	g_window_state.members.forEach[item|
+		if (! item.updatedSince(now.minusHours(25))) {
+			var message = ""
+			message = item.label + " was not active within the last 25 hours"
+
+			// send information via telegram:
+			// sendTelegram("bot", message)
+			logInfo("Window State Missing", message)
+		}
+	]
+end
