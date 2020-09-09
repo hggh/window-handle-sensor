@@ -2,6 +2,10 @@
 
 get the status of your windows. sensor is between your handle and the window.
 
+#### TODO
+
+ * new PCB "esp32-ldo": only three LEDs (green = known state, red = unknown state, blue = sending failed)
+ * PCB: a new button, to enable OTA updates later?!?
 
 ### PCBs
 
