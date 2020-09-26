@@ -2,6 +2,10 @@
 
 get the status of your windows. sensor is between your handle and the window.
 
+
+![led-guy1.jpg](https://raw.githubusercontent.com/hggh/window-handle-sensor/master/pics/beta.jpg)
+
+
 #### TODO
 
  * new PCB "esp32-ldo": only three LEDs (green = known state, red = unknown state, blue = sending failed)
