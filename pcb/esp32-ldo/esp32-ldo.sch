@@ -451,17 +451,6 @@ F 3 "~" H 6050 3350 50  0001 C CNN
 	0    -1   -1   0   
 $EndComp
 $Comp
-L Device:LED D4
-U 1 1 5F20F7DF
-P 6500 3250
-F 0 "D4" V 6538 3132 50  0000 R CNN
-F 1 "GREEN" V 6447 3132 50  0000 R CNN
-F 2 "LED_SMD:LED_0805_2012Metric" H 6500 3250 50  0001 C CNN
-F 3 "~" H 6500 3250 50  0001 C CNN
-	1    6500 3250
-	0    -1   -1   0   
-$EndComp
-$Comp
 L Device:LED D2
 U 1 1 5F20F953
 P 5550 3450
@@ -495,17 +484,6 @@ F 3 "~" H 6050 3850 50  0001 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L Device:R R5
-U 1 1 5F212650
-P 6500 3850
-F 0 "R5" H 6570 3896 50  0000 L CNN
-F 1 "R" H 6570 3805 50  0000 L CNN
-F 2 "Resistor_SMD:R_0805_2012Metric" V 6430 3850 50  0001 C CNN
-F 3 "~" H 6500 3850 50  0001 C CNN
-	1    6500 3850
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:GND #PWR014
 U 1 1 5F21269A
 P 6500 4200
@@ -516,8 +494,6 @@ F 3 "" H 6500 4200 50  0001 C CNN
 	1    6500 4200
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	6500 3700 6500 3400
 Wire Wire Line
 	6050 3500 6050 3700
 Wire Wire Line
@@ -686,14 +662,9 @@ Connection ~ 6050 4200
 Wire Wire Line
 	6050 4200 5550 4200
 Wire Wire Line
-	6500 4000 6500 4200
-Connection ~ 6500 4200
-Wire Wire Line
 	5200 3400 3600 3400
 Wire Wire Line
 	3600 3200 6050 3200
-Wire Wire Line
-	6500 3100 3600 3100
 Wire Wire Line
 	5200 3700 5200 3750
 Wire Wire Line
@@ -808,4 +779,5 @@ Wire Wire Line
 Connection ~ 10650 1150
 Wire Wire Line
 	10650 1150 10400 1150
+NoConn ~ 3600 3100
 $EndSCHEMATC
