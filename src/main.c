@@ -178,9 +178,6 @@ void setup_leds() {
 
   gpio_reset_pin(LED_D3);
   gpio_set_direction(LED_D3, GPIO_MODE_OUTPUT);
-
-  gpio_reset_pin(LED_D4);
-  gpio_set_direction(LED_D4, GPIO_MODE_OUTPUT);
 }
 
 void led_on(gpio_num_t led) {
@@ -230,26 +227,24 @@ static void init_ulp_program() {
 }
 
 void set_led_by_window_status() {
+  led_off(LED_D1);
   led_off(LED_D2);
-  led_off(LED_D3);
-  led_off(LED_D4);
 
   uint8_t window_state = get_window_status();
   if (window_state == WINDOW_STATUS_CLOSED) {
-    led_on(LED_D4);
+    led_on(LED_D1);
     return;
   }
   if (window_state == WINDOW_STATUS_OPENED) {
-    led_on(LED_D3);
+    led_on(LED_D1);
     return;
   }
   if (window_state == WINDOW_STATUS_HALF_OPENED) {
-    led_on(LED_D2);
+    led_on(LED_D1);
     return;
   }
   // seems no status, so light up two LEDS
-  led_on(LED_D3);
-  led_on(LED_D4);
+  led_on(LED_D2);
 }
 
 int connect_to_wifi() {
@@ -407,9 +402,9 @@ void app_main() {
   int current_window_status = get_window_status();
   if (send_window_status(current_window_status) != 1) {
     // sending window status failed, light up red LED
-    led_on(LED_D1);
+    led_on(LED_D3);
     vTaskDelay(250 / portTICK_PERIOD_MS);
-    led_off(LED_D1);
+    led_off(LED_D3);
   }
   if (wakeup_reason == POWERUP || wakeup_reason == TIMER) {
     // on timer or powerup send battery status
@@ -424,7 +419,6 @@ void app_main() {
   led_off(LED_D1);
   led_off(LED_D2);
   led_off(LED_D3);
-  led_off(LED_D4);
 
   if (current_window_status != get_window_status()) {
 #ifdef DEBUG
