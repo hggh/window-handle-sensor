@@ -108,19 +108,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 }
 
 void setup_wifi() {
-  static esp_netif_t *sta_netif = NULL;
   esp_event_loop_create_default();
 
-  esp_netif_init();
-  sta_netif = esp_netif_create_default_wifi_sta();
-  esp_netif_dhcpc_stop(sta_netif);
-
-  esp_netif_ip_info_t ip_info;
+  tcpip_adapter_init();
+  tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
+  tcpip_adapter_ip_info_t ip_info;
   ip_info.ip.addr = ipaddr_addr(IP);
   ip_info.gw.addr = ipaddr_addr(GATEWAY);
   ip_info.netmask.addr = ipaddr_addr(SUBNET);
 
-  esp_netif_set_ip_info(sta_netif, &ip_info);
+  tcpip_adapter_set_ip_info(WIFI_IF_STA, &ip_info);
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&cfg);
