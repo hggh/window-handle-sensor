@@ -53,6 +53,7 @@ volatile int mqtt_message_id = 0;
 enum WakeUpReason {ULP, TIMER, POWERUP};
 enum WakeUpReason wakeup_reason = POWERUP;
 
+RTC_DATA_ATTR unsigned int bootCount = 0;
 RTC_DATA_ATTR uint64_t sleep_time_remaining = 0;
 RTC_DATA_ATTR time_t sleep_time_start;
 
@@ -363,6 +364,7 @@ void app_main() {
   }
   ESP_ERROR_CHECK(ret);
   time_t startup_time = time(0);
+  ++bootCount;
 
   // suppress boot message
   esp_deep_sleep_disable_rom_logging();
@@ -430,6 +432,7 @@ void app_main() {
 
   rtc_gpio_isolate(ENABLE_VOLTAGE_DIVIDER);
   esp_wifi_stop();
+  sleep_time_start = time(0);
   esp_sleep_enable_ulp_wakeup();
   esp_sleep_enable_timer_wakeup(sleep_time_remaining);
   esp_deep_sleep_start();
