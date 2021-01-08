@@ -1,3 +1,4 @@
 .pio
 src/config.h
 sdkconfig.old
+*.swp

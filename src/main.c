@@ -11,6 +11,7 @@
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 #include "driver/rtc_io.h"
+#include "driver/rtc_cntl.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 #include "esp32/ulp.h"
@@ -20,17 +21,18 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
+#include "ulp_handle_sensor.h"
+
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
 
 #define uS_TO_S_FACTOR 1000000
 
-#define LED_D1 GPIO_NUM_19
-#define LED_D2 GPIO_NUM_18
-#define LED_D3 GPIO_NUM_17
-#define LED_D4 GPIO_NUM_16
+#define LED_GREEN GPIO_NUM_35
+#define LED_RED GPIO_NUM_34
+#define LED_BLUE GPIO_NUM_33
 
-#define ENABLE_VOLTAGE_DIVIDER GPIO_NUM_25
+#define ENABLE_VOLTAGE_DIVIDER GPIO_NUM_2
 
 #define WINDOW_HANDLE_RIGHT 1
 #define WINDOW_HANDLE_LEFT 2
@@ -54,8 +56,8 @@ enum WakeUpReason {ULP, TIMER, POWERUP};
 enum WakeUpReason wakeup_reason = POWERUP;
 
 RTC_DATA_ATTR unsigned int bootCount = 0;
-RTC_DATA_ATTR uint64_t sleep_time_remaining = 0;
-RTC_DATA_ATTR time_t sleep_time_start;
+uint64_t sleep_time = (uint64_t)(60 * 60 * 24) * (uint64_t)uS_TO_S_FACTOR;
+
 
 float get_battery_voltage() {
   gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 1);
@@ -67,10 +69,16 @@ float get_battery_voltage() {
   return 0.0;
 }
 
+void init_ulp_vars() {
+  ulp_hall1_status = 99;
+  ulp_hall2_status = 99;
+  ulp_hall3_status = 99;
+}
+
 uint8_t get_window_status() {
-  uint8_t hall1_status = ulp_hall1_status & UINT16_MAX;
-  uint8_t hall2_status = ulp_hall2_status & UINT16_MAX;
-  uint8_t hall3_status = ulp_hall3_status & UINT16_MAX;
+  uint8_t hall1_status = ulp_hall1_status;
+  uint8_t hall2_status = ulp_hall2_status;
+  uint8_t hall3_status = ulp_hall3_status;
 
   if (window_handle == WINDOW_HANDLE_RIGHT) {
     if (hall1_status == 0 && hall2_status == 1 && hall3_status == 1) {
@@ -111,14 +119,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 void setup_wifi() {
   esp_event_loop_create_default();
 
-  tcpip_adapter_init();
-  tcpip_adapter_dhcpc_stop(TCPIP_ADAPTER_IF_STA);
-  tcpip_adapter_ip_info_t ip_info;
+  ESP_ERROR_CHECK(esp_netif_init());
+  esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+  esp_netif_dhcpc_stop(sta_netif);
+  esp_netif_ip_info_t ip_info;
+
   ip_info.ip.addr = ipaddr_addr(IP);
   ip_info.gw.addr = ipaddr_addr(GATEWAY);
   ip_info.netmask.addr = ipaddr_addr(SUBNET);
 
-  tcpip_adapter_set_ip_info(WIFI_IF_STA, &ip_info);
+  esp_netif_set_ip_info(sta_netif, &ip_info);
 
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   esp_wifi_init(&cfg);
@@ -171,14 +181,14 @@ void setup_mqtt() {
 }
 
 void setup_leds() {
-  gpio_reset_pin(LED_D1);
-  gpio_set_direction(LED_D1, GPIO_MODE_OUTPUT);
+  gpio_reset_pin(LED_GREEN);
+  gpio_set_direction(LED_GREEN, GPIO_MODE_OUTPUT);
 
-  gpio_reset_pin(LED_D2);
-  gpio_set_direction(LED_D2, GPIO_MODE_OUTPUT);
+  gpio_reset_pin(LED_RED);
+  gpio_set_direction(LED_RED, GPIO_MODE_OUTPUT);
 
-  gpio_reset_pin(LED_D3);
-  gpio_set_direction(LED_D3, GPIO_MODE_OUTPUT);
+  gpio_reset_pin(LED_BLUE);
+  gpio_set_direction(LED_BLUE, GPIO_MODE_OUTPUT);
 }
 
 void led_on(gpio_num_t led) {
@@ -190,62 +200,67 @@ void led_off(gpio_num_t led) {
 }
 
 static void init_ulp_program() {
-  esp_err_t err = ulp_load_binary(0, ulp_main_bin_start, (ulp_main_bin_end - ulp_main_bin_start) / sizeof(uint32_t));
+  init_ulp_vars();
+  esp_err_t err = ulp_riscv_load_binary(ulp_main_bin_start, (ulp_main_bin_end - ulp_main_bin_start));
   ESP_ERROR_CHECK(err);
 
-  gpio_num_t gpio_hall1 = GPIO_NUM_26;
-  gpio_num_t gpio_hall2 = GPIO_NUM_33;
-  gpio_num_t gpio_hall3 = GPIO_NUM_32;
-
-//    GPIO 26 - RTC 7 - Hall 1
-//    GPIO 33 - RTC 8 - Hall 2
-//    GPIO 32 - RTC 9 - Hall 3
+  gpio_num_t gpio_hall1 = GPIO_NUM_4;
+  gpio_num_t gpio_hall2 = GPIO_NUM_5;
+  gpio_num_t gpio_hall3 = GPIO_NUM_6;
+  gpio_num_t gpio_hall4 = GPIO_NUM_7;
 
   rtc_gpio_init(gpio_hall1);
   rtc_gpio_set_direction(gpio_hall1, RTC_GPIO_MODE_INPUT_ONLY);
   rtc_gpio_pulldown_dis(gpio_hall1);
   rtc_gpio_pullup_dis(gpio_hall1);
   rtc_gpio_hold_en(gpio_hall1);
-  rtc_gpio_isolate(GPIO_NUM_26);
+  rtc_gpio_isolate(GPIO_NUM_4);
 
   rtc_gpio_init(gpio_hall2);
   rtc_gpio_set_direction(gpio_hall2, RTC_GPIO_MODE_INPUT_ONLY);
   rtc_gpio_pulldown_dis(gpio_hall2);
   rtc_gpio_pullup_dis(gpio_hall2);
   rtc_gpio_hold_en(gpio_hall2);
-  rtc_gpio_isolate(GPIO_NUM_33);
+  rtc_gpio_isolate(GPIO_NUM_5);
 
   rtc_gpio_init(gpio_hall3);
   rtc_gpio_set_direction(gpio_hall3, RTC_GPIO_MODE_INPUT_ONLY);
   rtc_gpio_pulldown_dis(gpio_hall3);
   rtc_gpio_pullup_dis(gpio_hall3);
   rtc_gpio_hold_en(gpio_hall3);
-  rtc_gpio_isolate(GPIO_NUM_32);
+  rtc_gpio_isolate(GPIO_NUM_6);
+
+  rtc_gpio_init(gpio_hall4);
+  rtc_gpio_set_direction(gpio_hall4, RTC_GPIO_MODE_INPUT_ONLY);
+  rtc_gpio_pulldown_dis(gpio_hall4);
+  rtc_gpio_pullup_dis(gpio_hall4);
+  rtc_gpio_hold_en(gpio_hall4);
+  rtc_gpio_isolate(GPIO_NUM_7);
 
   ulp_set_wakeup_period(0, 20 * 1000); // 20 ms
-  err = ulp_run(&ulp_entry - RTC_SLOW_MEM);
+  err = ulp_riscv_run();
   ESP_ERROR_CHECK(err);
 }
 
 void set_led_by_window_status() {
-  led_off(LED_D1);
-  led_off(LED_D2);
+  led_off(LED_GREEN);
+  led_off(LED_BLUE);
 
   uint8_t window_state = get_window_status();
   if (window_state == WINDOW_STATUS_CLOSED) {
-    led_on(LED_D1);
+    led_on(LED_GREEN);
     return;
   }
   if (window_state == WINDOW_STATUS_OPENED) {
-    led_on(LED_D1);
+    led_on(LED_GREEN);
     return;
   }
   if (window_state == WINDOW_STATUS_HALF_OPENED) {
-    led_on(LED_D1);
+    led_on(LED_GREEN);
     return;
   }
-  // seems no status, so light up two LEDS
-  led_on(LED_D2);
+  // handle has no correct position, light blue
+  led_on(LED_BLUE);
 }
 
 int connect_to_wifi() {
@@ -363,7 +378,6 @@ void app_main() {
     ret = nvs_flash_init();
   }
   ESP_ERROR_CHECK(ret);
-  time_t startup_time = time(0);
   ++bootCount;
 
   // suppress boot message
@@ -383,57 +397,13 @@ void app_main() {
 #ifdef DEBUG
     printf("Not ULP wakeup, initializing ULP\n");
 #endif
-    init_ulp_program();
+//FIXME    init_ulp_program();
   }
 
-  if (wakeup_reason == TIMER || wakeup_reason == POWERUP) {
-    sleep_time_remaining = (uint64_t)(60 * 60 * 24) * (uint64_t)uS_TO_S_FACTOR; // 24 Stunden
-  }
-  if (wakeup_reason == ULP) {
-    sleep_time_remaining = sleep_time_remaining - ((startup_time - sleep_time_start) * (uint64_t)uS_TO_S_FACTOR);
-  }
-#ifdef DEBUG
-  printf("sleep_time_remaining: %" PRId64 "\n", sleep_time_remaining);
-#endif
-
-  if (wakeup_reason == POWERUP || wakeup_reason == ULP) {
-    // to not light up any leds if timer was the reason
-    set_led_by_window_status();
-  }
-
-  int current_window_status = get_window_status();
-  if (send_window_status(current_window_status) != 1) {
-    // sending window status failed, light up red LED
-    led_on(LED_D3);
-    vTaskDelay(250 / portTICK_PERIOD_MS);
-    led_off(LED_D3);
-  }
-  if (wakeup_reason == POWERUP || wakeup_reason == TIMER) {
-    // on timer or powerup send battery status
-    char mqtt_data[10];
-    sprintf(mqtt_data, "%0.2f", get_battery_voltage());
-    char mqtt_topic[40];
-    sprintf(mqtt_topic, "/ws/%s/battery", HOSTNAME);
-    send_mqtt(mqtt_topic, mqtt_data);
-  }
-
-  // switch off all leds before sleep
-  led_off(LED_D1);
-  led_off(LED_D2);
-  led_off(LED_D3);
-
-  if (current_window_status != get_window_status()) {
-#ifdef DEBUG
-    printf("[WARNING] Window Status changed while sending: %d => %d\n", current_window_status, get_window_status());
-#endif
-    int current_window_status = get_window_status();
-    send_window_status(current_window_status);
-  }
 
   rtc_gpio_isolate(ENABLE_VOLTAGE_DIVIDER);
   esp_wifi_stop();
-  sleep_time_start = time(0);
   esp_sleep_enable_ulp_wakeup();
-  esp_sleep_enable_timer_wakeup(sleep_time_remaining);
+  esp_sleep_enable_timer_wakeup(sleep_time);
   esp_deep_sleep_start();
 }

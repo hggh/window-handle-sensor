@@ -1,0 +1,6 @@
+(fp_lib_table
+  (lib (name esp32-prog-header)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/esp32-prog-header.pretty)(options "")(descr ""))
+  (lib (name xc622)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/xc6220.pretty)(options "")(descr ""))
+  (lib (name esp32s2)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/ESP32-S2-WROOM.pretty)(options "")(descr ""))
+  (lib (name SMDButton)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/button.pretty)(options "")(descr ""))
+)

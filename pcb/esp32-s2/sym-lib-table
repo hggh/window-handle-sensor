@@ -1,0 +1,7 @@
+(sym_lib_table
+  (lib (name esp32-prog-header)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/esp32-prog-header.lib)(options "")(descr ""))
+  (lib (name xc)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/xc6220.lib)(options "")(descr ""))
+  (lib (name esp32s2)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/ESP32-S2-WROOM.lib)(options "")(descr ""))
+  (lib (name switch)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/switch.lib)(options "")(descr ""))
+  (lib (name ht78xx)(type Legacy)(uri /home/jonas/entwicklung/kicad-libraries/ht78xx.lib)(options "")(descr ""))
+)
