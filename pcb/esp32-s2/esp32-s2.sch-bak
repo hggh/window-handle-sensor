@@ -208,13 +208,13 @@ ADC_BATT
 Wire Wire Line
 	2700 3550 2550 3550
 Text GLabel 2400 3150 0    50   Input ~ 0
-HALL1
+HALL4
 Text GLabel 2400 3250 0    50   Input ~ 0
-HALL2
+HALL1
 Text GLabel 2400 3350 0    50   Input ~ 0
 HALL3
 Text GLabel 2400 3450 0    50   Input ~ 0
-HALL4
+HALL2
 Wire Wire Line
 	2700 3150 2400 3150
 Wire Wire Line
@@ -520,28 +520,6 @@ Connection ~ 9450 1000
 Wire Wire Line
 	9450 1000 9350 1000
 $Comp
-L Switch:SW_Push SW1
-U 1 1 5FF79AF1
-P 900 3050
-F 0 "SW1" H 900 3335 50  0000 C CNN
-F 1 "WIFI-Config" H 900 3244 50  0000 C CNN
-F 2 "SMDButton:SMD_Button" H 900 3250 50  0001 C CNN
-F 3 "~" H 900 3250 50  0001 C CNN
-	1    900  3050
-	1    0    0    -1  
-$EndComp
-$Comp
-L power:GND #PWR01
-U 1 1 5FF7AC8D
-P 600 3050
-F 0 "#PWR01" H 600 2800 50  0001 C CNN
-F 1 "GND" H 605 2877 50  0000 C CNN
-F 2 "" H 600 3050 50  0001 C CNN
-F 3 "" H 600 3050 50  0001 C CNN
-	1    600  3050
-	1    0    0    -1  
-$EndComp
-$Comp
 L Device:R R9
 U 1 1 5FF7B7F9
 P 1250 2900
@@ -565,11 +543,6 @@ F 3 "" H 1250 2650 50  0001 C CNN
 $EndComp
 Wire Wire Line
 	2700 3050 1250 3050
-Wire Wire Line
-	1250 3050 1100 3050
-Connection ~ 1250 3050
-Wire Wire Line
-	700  3050 600  3050
 Wire Wire Line
 	1250 2750 1250 2650
 $Comp
@@ -861,4 +834,33 @@ Text Label 5400 3950 0    50   ~ 0
 Red
 Text Label 4850 4050 0    50   ~ 0
 Blue
+$Comp
+L power:GND #PWR01
+U 1 1 5FFB254B
+P 600 3150
+F 0 "#PWR01" H 600 2900 50  0001 C CNN
+F 1 "GND" H 605 2977 50  0000 C CNN
+F 2 "" H 600 3150 50  0001 C CNN
+F 3 "" H 600 3150 50  0001 C CNN
+	1    600  3150
+	1    0    0    -1  
+$EndComp
+$Comp
+L Device:R R15
+U 1 1 5FFC2892
+P 900 3050
+F 0 "R15" V 693 3050 50  0000 C CNN
+F 1 "0" V 784 3050 50  0000 C CNN
+F 2 "Resistor_SMD:R_0805_2012Metric" V 830 3050 50  0001 C CNN
+F 3 "~" H 900 3050 50  0001 C CNN
+	1    900  3050
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	1250 3050 1050 3050
+Connection ~ 1250 3050
+Wire Wire Line
+	750  3050 600  3050
+Wire Wire Line
+	600  3050 600  3150
 $EndSCHEMATC
