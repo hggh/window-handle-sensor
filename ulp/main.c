@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include "soc/rtc_io_reg.h"
 #include "ulp_riscv/ulp_riscv.h"
 #include "ulp_riscv/ulp_riscv_utils.h"
 

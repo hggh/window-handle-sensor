@@ -14,14 +14,13 @@
 #include "driver/rtc_cntl.h"
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
-#include "esp32/ulp.h"
-#include "ulp_main.h"
 #include "mqtt_client.h"
-
+#include "esp32s2/ulp.h"
+#include "esp32s2/ulp_riscv.h"
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
-#include "ulp_handle_sensor.h"
+#include "ulp_main.h"
 
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[]   asm("_binary_ulp_main_bin_end");
@@ -61,9 +60,7 @@ uint64_t sleep_time = (uint64_t)(60 * 60 * 24) * (uint64_t)uS_TO_S_FACTOR;
 
 float get_battery_voltage() {
   gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 1);
-  adc_power_on();
 
-  adc_power_off();
   gpio_set_level(ENABLE_VOLTAGE_DIVIDER, 0);
   // FIXME
   return 0.0;
@@ -397,7 +394,7 @@ void app_main() {
 #ifdef DEBUG
     printf("Not ULP wakeup, initializing ULP\n");
 #endif
-//FIXME    init_ulp_program();
+    init_ulp_program();
   }
 
 
