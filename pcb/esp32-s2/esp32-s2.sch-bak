@@ -208,13 +208,13 @@ ADC_BATT
 Wire Wire Line
 	2700 3550 2550 3550
 Text GLabel 2400 3150 0    50   Input ~ 0
-HALL4
-Text GLabel 2400 3250 0    50   Input ~ 0
 HALL1
+Text GLabel 2400 3250 0    50   Input ~ 0
+HALL4
 Text GLabel 2400 3350 0    50   Input ~ 0
-HALL3
-Text GLabel 2400 3450 0    50   Input ~ 0
 HALL2
+Text GLabel 2400 3450 0    50   Input ~ 0
+HALL3
 Wire Wire Line
 	2700 3150 2400 3150
 Wire Wire Line
