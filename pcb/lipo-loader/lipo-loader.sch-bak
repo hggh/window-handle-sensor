@@ -1,0 +1,131 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Connector:Conn_01x02_Female J5
+U 1 1 6005EC80
+P 8750 3250
+F 0 "J5" H 8778 3226 50  0000 L CNN
+F 1 "BATT" H 8778 3135 50  0000 L CNN
+F 2 "Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal" H 8750 3250 50  0001 C CNN
+F 3 "~" H 8750 3250 50  0001 C CNN
+	1    8750 3250
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x01_Male J3
+U 1 1 6005F41F
+P 7850 3200
+F 0 "J3" H 7958 3381 50  0000 C CNN
+F 1 "TP_BATT_VCC" H 7958 3290 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" H 7850 3200 50  0001 C CNN
+F 3 "~" H 7850 3200 50  0001 C CNN
+	1    7850 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x01_Male J4
+U 1 1 6005F5F4
+P 7850 3400
+F 0 "J4" H 7958 3581 50  0000 C CNN
+F 1 "TP_BATT_GND" H 7958 3490 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" H 7850 3400 50  0001 C CNN
+F 3 "~" H 7850 3400 50  0001 C CNN
+	1    7850 3400
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8050 3200 8550 3200
+Wire Wire Line
+	8550 3200 8550 3250
+Wire Wire Line
+	8550 3350 8250 3350
+Wire Wire Line
+	8250 3350 8250 3400
+Wire Wire Line
+	8250 3400 8050 3400
+$Comp
+L Mechanical:MountingHole H1
+U 1 1 6005FD43
+P 9350 3200
+F 0 "H1" H 9450 3246 50  0000 L CNN
+F 1 "M" H 9450 3155 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 9350 3200 50  0001 C CNN
+F 3 "~" H 9350 3200 50  0001 C CNN
+	1    9350 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H2
+U 1 1 6005FEDD
+P 9350 3600
+F 0 "H2" H 9450 3646 50  0000 L CNN
+F 1 "M" H 9450 3555 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 9350 3600 50  0001 C CNN
+F 3 "~" H 9350 3600 50  0001 C CNN
+	1    9350 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H3
+U 1 1 60060168
+P 10000 3200
+F 0 "H3" H 10100 3246 50  0000 L CNN
+F 1 "M" H 10100 3155 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 10000 3200 50  0001 C CNN
+F 3 "~" H 10000 3200 50  0001 C CNN
+	1    10000 3200
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H4
+U 1 1 600602D0
+P 10000 3600
+F 0 "H4" H 10100 3646 50  0000 L CNN
+F 1 "M" H 10100 3555 50  0000 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 10000 3600 50  0001 C CNN
+F 3 "~" H 10000 3600 50  0001 C CNN
+	1    10000 3600
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x01_Male J1
+U 1 1 6006059B
+P 6800 3100
+F 0 "J1" H 6908 3281 50  0000 C CNN
+F 1 "IN_VCC" H 6908 3190 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" H 6800 3100 50  0001 C CNN
+F 3 "~" H 6800 3100 50  0001 C CNN
+	1    6800 3100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x01_Male J2
+U 1 1 60060670
+P 6800 3350
+F 0 "J2" H 6908 3531 50  0000 C CNN
+F 1 "IN_GND" H 6908 3440 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical" H 6800 3350 50  0001 C CNN
+F 3 "~" H 6800 3350 50  0001 C CNN
+	1    6800 3350
+	1    0    0    -1  
+$EndComp
+NoConn ~ 7000 3100
+NoConn ~ 7000 3350
+Text Label 8400 3200 0    50   ~ 0
+VCC
+Text Label 8350 3350 0    50   ~ 0
+GND
+$EndSCHEMATC
