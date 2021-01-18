@@ -213,7 +213,8 @@ void app_main(void)
       gpio_wakeup_enable(HALL_SENSOR_1, gpio_get_level(HALL_SENSOR_1) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
       gpio_wakeup_enable(HALL_SENSOR_2, gpio_get_level(HALL_SENSOR_2) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
       gpio_wakeup_enable(HALL_SENSOR_3, gpio_get_level(HALL_SENSOR_3) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
- //     esp_wifi_stop();
+      esp_wifi_stop();
+      adc_power_off();
       esp_sleep_enable_gpio_wakeup();
       esp_light_sleep_start();
      
