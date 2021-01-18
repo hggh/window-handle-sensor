@@ -1,4 +1,0 @@
-(fp_lib_table
-  (lib (name xc6220)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/xc6220.pretty)(options "")(descr ""))
-  (lib (name button)(type KiCad)(uri /home/jonas/entwicklung/kicad-libraries/button.pretty)(options "")(descr ""))
-)
