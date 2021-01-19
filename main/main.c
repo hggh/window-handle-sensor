@@ -33,6 +33,7 @@
 
 #include "config.h"
 
+RTC_DATA_ATTR unsigned int bootCount = 0;
 volatile bool wifi_connection_status = false;
 int wifi_connection_time_amount = 0;
 
@@ -159,6 +160,19 @@ int send_window_status(int window_status) {
   return -1;
 }
 
+int send_boot_count(unsigned int boot_count) {
+  char mqtt_data[10];
+  sprintf(mqtt_data, "%d", boot_count);
+  char mqtt_topic[40];
+
+  sprintf(mqtt_topic, "/ws/%s/boot_count", HOSTNAME);
+  int s = send_mqtt(mqtt_topic, mqtt_data);
+  if (s == 1) {
+    return 1;
+  }
+  return -1;
+}
+
 int set_deep_sleep_wakeup() {
   gpio_num_t gpio_current_low;
   if (gpio_get_level(HALL_SENSOR_1) == 0) {
@@ -186,23 +200,39 @@ void app_main(void)
     ESP_ERROR_CHECK(nvs_flash_erase());
     ret = nvs_flash_init();
   }
+  ++bootCount;
   esp_deep_sleep_disable_rom_logging();
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
   setup_leds();
   setup_hall_sensor_pins();
 
+  uint8_t wifi_connection_error = 0;
+  setup_wifi();
   while(true) {
-    setup_wifi();
     set_led_by_window_status();
     uint8_t window_state = get_window_status();
 
 #ifdef DEBUG
     printf("Window State is: %d\n", window_state);
 #endif
-    send_window_status(window_state);
+    if (send_window_status(window_state) == -1) {
+      wifi_connection_error++;
+      led_on(LED_RED);
+      if (wifi_connection_error > 2) {
+#ifdef DEBUG
+        printf("wifi_connection_error: %d\n", wifi_connection_error);
+#endif
+      }
+      else {
+        // wifi or MQTT connection error try it again
+        continue;
+      }
+    }
+    send_boot_count(bootCount);
 
     if (set_deep_sleep_wakeup() == 0) {
+      // we have correct handle position and we has send the sate, abort the while and goto deep sleep
       break;
     }
     else {
@@ -235,6 +265,7 @@ void app_main(void)
   esp_wifi_stop();
   adc_power_off();
 
+  // wakeup at least after 24hour to inform our system, sensor is active and battery is working
   esp_sleep_enable_timer_wakeup((uint64_t)(60 * 60 * 24) * (uint64_t)uS_TO_S_FACTOR);
   esp_deep_sleep_start();
 }
