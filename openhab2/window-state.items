@@ -5,4 +5,5 @@ Group g_window_state_battery_alarm
 
 Number:ElectricPotential WindowState1_BatteryVoltage "battery [%.2f V]" <battery> (g_window_state_battery) { channel="mqtt:topic:window_state:window1:battery" } 
 Number WindowState1 "window front [MAP(window-state.map):%s]" <window> (g_window_state) { channel="mqtt:topic:window_state:window1:state" } 
+Number WindowState1_BootCount "count [%d]" { channel="mqtt:topic:myBroker:window1:boot_count"}
 Switch WindowState1_Alarm "Window1 Battery Alarm" (g_window_state_battery_alarm)

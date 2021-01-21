@@ -4,5 +4,6 @@ Bridge mqtt:broker:window_state [ host="localhost", secure=false, username="open
 		Channels:
 			Type number : state [ stateTopic="/ws/1/state", qos="2" ]
 			Type number : battery [ stateTopic="/ws/1/battery", qos="2", unit="ElectricPotential" ]
+			Type number : boot_count [ stateTopic="/ws/1/boot_count", qos="2"]
 	}
 }
