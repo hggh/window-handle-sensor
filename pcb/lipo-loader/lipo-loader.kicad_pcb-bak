@@ -2,7 +2,7 @@
 
   (general
     (thickness 1.6)
-    (drawings 8)
+    (drawings 10)
     (tracks 4)
     (zones 0)
     (modules 9)
@@ -405,6 +405,12 @@
     (pad 1 np_thru_hole circle (at 0 0) (size 3.2 3.2) (drill 3.2) (layers *.Cu *.Mask))
   )
 
+  (gr_text BATT+ (at 142 87) (layer F.SilkS) (tstamp 600622F0)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
+  (gr_text BATT- (at 142 107) (layer F.SilkS)
+    (effects (font (size 1 1) (thickness 0.15)))
+  )
   (gr_text GND (at 149 101 90) (layer F.SilkS)
     (effects (font (size 1 1) (thickness 0.15)))
   )
