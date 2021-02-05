@@ -10,6 +10,8 @@
 #include "esp_wifi.h"
 #include "mqtt_client.h"
 #include <driver/adc_common.h>
+#include "driver/adc.h"
+#include "esp_adc_cal.h"
 
 #define uS_TO_S_FACTOR 1000000
 
@@ -18,6 +20,16 @@
 #define HALL_SENSOR_3 GPIO_NUM_7
 
 #define BATTERY_ENABLE_ADC GPIO_NUM_2
+#define ADC_GPIO_PIN GPIO_NUM_8
+#define DEFAULT_VREF    1100
+#define NO_OF_SAMPLES   10
+
+static esp_adc_cal_characteristics_t *adc_chars;
+static const adc_channel_t channel = ADC_CHANNEL_7;
+static const adc_bits_width_t width = ADC_WIDTH_BIT_13;
+static const adc_atten_t atten = ADC_ATTEN_DB_11;
+static float volt_r1 = 10000.0;
+static float volt_r2 = 10000.0;
 
 #define LED_GREEN GPIO_NUM_35
 #define LED_RED GPIO_NUM_34
@@ -43,6 +55,34 @@ esp_mqtt_client_handle_t mqtt_client;
 volatile int mqtt_message_id = 0;
 
 #include "wifi_mqtt.h"
+
+float get_battery_voltage() {
+  rtc_gpio_deinit(BATTERY_ENABLE_ADC);
+  rtc_gpio_deinit(ADC_GPIO_PIN);
+
+  gpio_set_direction(BATTERY_ENABLE_ADC, GPIO_MODE_OUTPUT);
+  gpio_set_level(BATTERY_ENABLE_ADC, 1);
+
+  adc1_config_width(width);
+  adc1_config_channel_atten(channel, atten);
+
+  //Characterize ADC
+  adc_chars = calloc(1, sizeof(esp_adc_cal_characteristics_t));
+  esp_adc_cal_characterize(ADC_UNIT_1, atten, width, DEFAULT_VREF, adc_chars);
+
+  uint32_t adc_reading = 0;
+  for (int i = 0; i < NO_OF_SAMPLES; i++) {
+    adc_reading += adc1_get_raw((adc1_channel_t)channel);
+  }
+  adc_reading /= NO_OF_SAMPLES;
+  // get mV
+  uint32_t voltage = esp_adc_cal_raw_to_voltage(adc_reading, adc_chars);
+  float battery_voltage = (voltage / 1000.0) / (volt_r2 / ( volt_r1 + volt_r2));
+
+  gpio_set_level(BATTERY_ENABLE_ADC, 0);
+
+  return battery_voltage;
+}
 
 void setup_hall_sensor_pins() {
   rtc_gpio_deinit(HALL_SENSOR_1);
@@ -173,6 +213,20 @@ int send_boot_count(unsigned int boot_count) {
   return -1;
 }
 
+int send_battery_voltage(float battery_voltage) {
+
+  char mqtt_data[10];
+  sprintf(mqtt_data, "%f", battery_voltage);
+  char mqtt_topic[40];
+
+  sprintf(mqtt_topic, "/ws/%s/battery", HOSTNAME);
+  int s = send_mqtt(mqtt_topic, mqtt_data);
+  if (s == 1) {
+    return 1;
+  }
+  return -1;
+}
+
 int set_deep_sleep_wakeup() {
   gpio_num_t gpio_current_low;
   if (gpio_get_level(HALL_SENSOR_1) == 0) {
@@ -201,6 +255,7 @@ void app_main(void)
     ret = nvs_flash_init();
   }
   ++bootCount;
+  esp_sleep_source_t w_cause = esp_sleep_get_wakeup_cause();
   esp_deep_sleep_disable_rom_logging();
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
 
@@ -210,7 +265,10 @@ void app_main(void)
   uint8_t wifi_connection_error = 0;
   setup_wifi();
   while(true) {
-    set_led_by_window_status();
+    // no LED lights if timer wakeup
+    if (w_cause != ESP_SLEEP_WAKEUP_TIMER) {
+      set_led_by_window_status();
+    }
     uint8_t window_state = get_window_status();
 
 #ifdef DEBUG
@@ -230,6 +288,11 @@ void app_main(void)
       }
     }
     send_boot_count(bootCount);
+    float battery_voltage = get_battery_voltage();
+#ifdef DEBUG
+    printf("Battery Voltage: %f\n", battery_voltage);
+#endif
+    send_battery_voltage(battery_voltage);
 
     if (set_deep_sleep_wakeup() == 0) {
       // we have correct handle position and we has send the sate, abort the while and goto deep sleep
@@ -243,6 +306,8 @@ void app_main(void)
       gpio_wakeup_enable(HALL_SENSOR_1, gpio_get_level(HALL_SENSOR_1) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
       gpio_wakeup_enable(HALL_SENSOR_2, gpio_get_level(HALL_SENSOR_2) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
       gpio_wakeup_enable(HALL_SENSOR_3, gpio_get_level(HALL_SENSOR_3) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
+      esp_mqtt_client_stop(mqtt_client);
+      esp_wifi_disconnect();
       esp_wifi_stop();
       adc_power_off();
       esp_sleep_enable_gpio_wakeup();
@@ -260,8 +325,11 @@ void app_main(void)
   rtc_gpio_isolate(HALL_SENSOR_1);
   rtc_gpio_isolate(HALL_SENSOR_2);
   rtc_gpio_isolate(HALL_SENSOR_3);
+  rtc_gpio_isolate(BATTERY_ENABLE_ADC);
+  rtc_gpio_isolate(ADC_GPIO_PIN);
 
   esp_mqtt_client_stop(mqtt_client);
+  esp_wifi_disconnect();
   esp_wifi_stop();
   adc_power_off();
 
