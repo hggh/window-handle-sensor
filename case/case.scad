@@ -84,8 +84,57 @@ module box() {
     }
 }
 
+module box_roundtop() {
+    difference() {
+        cylinder(h=CASE_SIZE_Z, d=CASE_SIZE_X, $fn=190);
+        translate([-CASE_SIZE_X, -CASE_SIZE_X, -1]) cube([100, CASE_SIZE_X, 100]);
+    }
+}
+
+BATTERY_BOX_X = 45 + 2 + 2;
+BATTERY_BOX_Y = 75 + 2;
+
+module box_pcb_battery() {
+    // innen: 45mm x 75mm
+    difference() {
+        cube([BATTERY_BOX_X, BATTERY_BOX_Y, 12]);
+        translate([2, 2, 1.2]) {
+            cube([45, 74, 12]);
+        }
+        translate([-1, 20, 5]) {
+            cube([100, 2, 2]);
+        }
+        translate([BATTERY_BOX_X/2 - PCB_SIZE_X/2, BATTERY_BOX_Y - 4, 0]) {
+            cube([PCB_SIZE_X, 5, 2]);
+        }
+        
+    }
+    
+}
+
+module box_spacer() {
+    difference() {
+        cube([CASE_SIZE_X, 5, CASE_SIZE_Z]);
+        
+        translate([5, -1, -1]) {
+            cube([PCB_SIZE_X, 6, 3]);
+        }
+    }
+}
+
 
 box();
+translate([0, CASE_SIZE_Y/2, 0]) {
+    box_roundtop();
+}
+translate([-CASE_SIZE_X/2, -CASE_SIZE_Y/2 - 5, 0]) {
+    box_spacer();
+}
+translate([-BATTERY_BOX_X/2, -CASE_SIZE_Y/2 -5 - BATTERY_BOX_Y]) {
+    box_pcb_battery();
+}
+
+
 
 
 translate([100, 10, 0]) {
