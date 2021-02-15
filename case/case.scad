@@ -86,7 +86,7 @@ module box() {
 
 module box_roundtop() {
     difference() {
-        cylinder(h=CASE_SIZE_Z, d=CASE_SIZE_X, $fn=190);
+        cylinder(h=CASE_SIZE_Z + 1.2, d=CASE_SIZE_X + 2.4, $fn=190);
         translate([-CASE_SIZE_X, -CASE_SIZE_X, -1]) cube([100, CASE_SIZE_X, 100]);
     }
 }
@@ -114,24 +114,50 @@ module box_pcb_battery() {
 
 module box_spacer() {
     difference() {
-        cube([CASE_SIZE_X, 5, CASE_SIZE_Z]);
+        cube([CASE_SIZE_X + 2.4, 5, CASE_SIZE_Z + 1.2]);
         
         translate([5, -1, -1]) {
-            cube([PCB_SIZE_X, 6, 3]);
+            cube([PCB_SIZE_X + 4, 6, 3 + 1.2]);
         }
     }
 }
 
 
+// inner part
 box();
-translate([0, CASE_SIZE_Y/2, 0]) {
-    box_roundtop();
-}
-translate([-CASE_SIZE_X/2, -CASE_SIZE_Y/2 - 5, 0]) {
-    box_spacer();
-}
-translate([-BATTERY_BOX_X/2, -CASE_SIZE_Y/2 -5 - BATTERY_BOX_Y]) {
-    box_pcb_battery();
+
+
+translate([-60, 0, 0]) {
+    translate([0, CASE_SIZE_Y/2, 0]) {
+        box_roundtop();
+    }
+    difference() {
+        translate([-(CASE_SIZE_X/2)-1.2, -(CASE_SIZE_Y/2), 0]) {
+                cube([CASE_SIZE_X + 2.4, CASE_SIZE_Y, CASE_SIZE_Z + 1.2]);
+        }
+        
+        translate([-(CASE_SIZE_X/2), -(CASE_SIZE_Y/2), 0]) {
+                cube([CASE_SIZE_X, CASE_SIZE_Y, CASE_SIZE_Z]);
+        }
+        // Bohrung Mitte + inlay
+        translate([0, 0, -1]) {
+            cylinder(h=10, d=25, $fn=180);
+        }         
+        // Bohrung Oben
+        translate([0, BOHRUNG_ABSTAND_MITTE, -1]) {
+            cylinder(h=10, d=BOHRUNGEN, $fn=180);
+        }
+        // Bohrung Oben
+        translate([0, - BOHRUNG_ABSTAND_MITTE, -1]) {
+            cylinder(h=10, d=BOHRUNGEN, $fn=180);
+        }
+    }
+    translate([-CASE_SIZE_X/2 - 1.2, -CASE_SIZE_Y/2 - 5, 0]) {
+        box_spacer();
+    }
+    translate([-BATTERY_BOX_X/2, -CASE_SIZE_Y/2 -5 - BATTERY_BOX_Y]) {
+        box_pcb_battery();
+    }
 }
 
 
