@@ -14,10 +14,34 @@ INLAY_HEIGHT_HOLDER_MAGNET_Y = 1.2;
 
 CASE_SIZE_Z = PCB_SIZE_Z + INLAY_HEIGHT_SPACING_Y + INLAY_HEIGHT_HOLDER_MAGNET_Y;
 
+BATTERY_BOX_X = 45 + 2 + 2;
+BATTERY_BOX_Y = 75 + 2;
+BATTERY_BOX_Z = 13;
+
+LID_BATTERY_BOX_X = BATTERY_BOX_X + 0.5 + 0.5 + 1.6 + 1.6;
+LID_BATTERY_BOX_Y = BATTERY_BOX_Y + 0.5 + 0.5 + 1.6 + 1.6;
+LID_BATTERY_BOX_Z = BATTERY_BOX_Z + 1.2;
+
 module pcb() {
     cube([PCB_SIZE_X, PCB_SIZE_Y, PCB_SIZE_Z]);
     // PCB the SMD stuff on front
     cube([22.25, PCB_SIZE_Y-2.25, PCB_SIZE_Z + PCB_SIZE_PARTS_Z]);
+}
+
+module lid() {
+    difference() {
+        cube([LID_BATTERY_BOX_X, LID_BATTERY_BOX_Y, LID_BATTERY_BOX_Z]);
+
+        translate([1.6, 1.6, -1])
+            cube([BATTERY_BOX_X + 0.5 + 0.5, BATTERY_BOX_Y + 0.5 + 0.5, BATTERY_BOX_Z + 1]);
+
+        SENSOR_CASE_X = CASE_SIZE_X + 2.4 + 0.5 + 0.5;
+
+        POS = (LID_BATTERY_BOX_X - SENSOR_CASE_X) / 2;
+        // case for sensor
+        translate([POS, -1, -1])
+            cube([SENSOR_CASE_X, 10, CASE_SIZE_Z + 1.2 + 0.5 + 1]);
+        }
 }
 
 module inlay() {
@@ -91,15 +115,12 @@ module box_roundtop() {
     }
 }
 
-BATTERY_BOX_X = 45 + 2 + 2;
-BATTERY_BOX_Y = 75 + 2;
-
 module box_pcb_battery() {
     // innen: 45mm x 75mm
     difference() {
-        cube([BATTERY_BOX_X, BATTERY_BOX_Y, 12]);
+        cube([BATTERY_BOX_X, BATTERY_BOX_Y, LID_BATTERY_BOX_Z]);
         translate([2, 2, 1.2]) {
-            cube([45, 74, 12]);
+            cube([45, 74, LID_BATTERY_BOX_Z]);
         }
         translate([-1, 20, 5]) {
             cube([100, 2, 2]);
@@ -121,7 +142,6 @@ module box_spacer() {
         }
     }
 }
-
 
 // inner part
 box();
@@ -160,9 +180,11 @@ translate([-60, 0, 0]) {
     }
 }
 
-
-
-
 translate([100, 10, 0]) {
     inlay();
+}
+
+
+translate([0, 150, 0]) {
+    lid();
 }
