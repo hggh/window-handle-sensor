@@ -3,7 +3,7 @@
 get the status of your windows. sensor is between your handle and the window.
 
 
-![window_sensor_installed.jpg](https://raw.githubusercontent.com/hggh/window-handle-sensor/master/pics/window_sensor_installed.jpgg)
+![window_sensor_installed.jpg](https://raw.githubusercontent.com/hggh/window-handle-sensor/master/pics/window_sensor_installed.jpg)
 
 
  * [magnet_holder.jpg](https://github.com/hggh/window-handle-sensor/blob/master/pics/magnet_holder.jpg)
