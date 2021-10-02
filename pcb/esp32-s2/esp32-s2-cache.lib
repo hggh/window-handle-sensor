@@ -199,7 +199,7 @@ ENDDEF
 DEF esp32-prog-header_ESP32Header H 0 40 Y Y 1 F N
 F0 "H" -150 -200 50 H V C CNN
 F1 "esp32-prog-header_ESP32Header" 250 100 50 V V C CNN
-F2 "" 0 0 50 H I C CNN
+F2 "espheader:esp32-prog-header" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
 DRAW
 S -200 -150 200 300 0 1 0 N
@@ -300,7 +300,7 @@ ENDDEF
 DEF xc_XC6220 U 0 40 Y Y 1 F N
 F0 "U" 0 0 50 H V C CNN
 F1 "xc_XC6220" 200 -100 50 V V C CNN
-F2 "" 0 0 50 H I C CNN
+F2 "xc622:XC6220" 0 0 50 H I C CNN
 F3 "" 0 0 50 H I C CNN
 DRAW
 S -200 -250 150 300 0 1 0 N

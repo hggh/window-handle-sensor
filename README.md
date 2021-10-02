@@ -9,6 +9,12 @@ get the status of your windows. sensor is between your handle and the window.
  * [magnet_holder.jpg](https://github.com/hggh/window-handle-sensor/blob/master/pics/magnet_holder.jpg)
  * [sensor_pcb.jpg](https://github.com/hggh/window-handle-sensor/blob/master/pics/sensor_pcb.jpg)
 
+### TODO
+
+ * replace xc6220 footprint with the one from KiCAD
+ * add a button for wifi reset
+ * battery connector rotate it: open should be on top
+
 ### PCBs
 
 this project contains of two pcbs.

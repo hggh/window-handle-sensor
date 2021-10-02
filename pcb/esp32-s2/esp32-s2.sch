@@ -863,4 +863,6 @@ Wire Wire Line
 	750  3050 600  3050
 Wire Wire Line
 	600  3050 600  3150
+Text Label 3650 4700 0    50   ~ 0
+IO18
 $EndSCHEMATC
