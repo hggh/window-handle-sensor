@@ -79,7 +79,6 @@ float get_battery_voltage() {
 
   gpio_set_level(BATTERY_ENABLE_ADC, 0);
   adc_power_release();
-Serial.println(battery_voltage);
   return battery_voltage;
 }
 
@@ -266,9 +265,9 @@ void setup() {
 }
 
 void loop() {
-  led_off(LED_RED);
+  led_off(LED_BLUE);
   led_off(LED_GREEN);
-  led_on(LED_BLUE);
+  led_on(LED_RED);
   gpio_wakeup_enable(HALL_SENSOR_1, gpio_get_level(HALL_SENSOR_1) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
   gpio_wakeup_enable(HALL_SENSOR_2, gpio_get_level(HALL_SENSOR_2) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
   gpio_wakeup_enable(HALL_SENSOR_3, gpio_get_level(HALL_SENSOR_3) == 1 ? GPIO_INTR_LOW_LEVEL : GPIO_INTR_HIGH_LEVEL);
